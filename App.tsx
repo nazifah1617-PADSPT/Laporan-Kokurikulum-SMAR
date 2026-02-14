@@ -1,8 +1,8 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Lock, ShieldCheck, Info, AlignLeft, Image as ImageIcon, 
-  CloudUpload, ArrowLeft, Eye, Trash2, X 
+  CloudUpload, ArrowLeft, Eye, Trash2, Printer, MapPin, Calendar, Clock, User
 } from 'lucide-react';
 import { 
   onAuthStateChanged, signInAnonymously 
@@ -38,7 +38,8 @@ export default function App() {
   const [adminIdInput, setAdminIdInput] = useState('');
   const [adminPwInput, setAdminPwInput] = useState('');
 
-  // Firebase Auth & Realtime Sync
+  const SCHOOL_LOGO = "https://i.postimg.cc/SNmZtXqv/photo-2026-01-21-21-49-29.jpg";
+
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -105,7 +106,6 @@ export default function App() {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     setIsProcessingImages(true);
-    // Explicitly cast Array.from result to File[] to avoid 'unknown' type inference issues
     const files = (Array.from(e.target.files) as File[]).slice(0, 4);
     const processed: string[] = [];
     for (const file of files) {
@@ -146,11 +146,7 @@ export default function App() {
       window.scrollTo(0, 0);
     } catch (err: any) {
       console.error(err);
-      if (err.message.includes("longer than 1048487 bytes")) {
-        alert("Ralat: Saiz gambar masih terlalu besar walaupun telah dimampatkan. Sila muat naik kurang dari 4 gambar atau gunakan gambar yang lebih kecil.");
-      } else {
-        alert("Gagal menyimpan. Sila semak Firestore Rules.");
-      }
+      alert("Gagal menyimpan laporan. Sila cuba lagi.");
     } finally {
       setIsSubmitting(false);
     }
@@ -171,6 +167,10 @@ export default function App() {
     setIsPrintModalOpen(true);
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <div className="bg-slate-50 min-h-screen text-slate-900 pb-10">
       {/* Navigasi Utama */}
@@ -178,7 +178,7 @@ export default function App() {
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-4 cursor-pointer" onClick={() => window.location.reload()}>
             <img 
-              src="https://i.postimg.cc/SNmZtXqv/photo-2026-01-21-21-49-29.jpg" 
+              src={SCHOOL_LOGO} 
               alt="Logo Sekolah" 
               className="w-12 h-12 object-contain bg-white rounded-full p-1 shadow-md"
             />
@@ -264,16 +264,16 @@ export default function App() {
       )}
 
       {/* Kandungan Utama */}
-      <div className="container mx-auto px-4 py-10">
+      <div className="container mx-auto px-4 py-10 no-print">
         {view === 'dashboard' && (
           <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-10 no-print">
+            <div className="text-center mb-10">
               <h1 className="text-4xl font-black text-slate-900 mb-2 tracking-tight uppercase">LAPORAN PROGRAM KO-KURIKULUM</h1>
               <p className="text-slate-500 font-medium uppercase text-xs tracking-[0.2em]">Borang Digital Pengurusan Aktiviti</p>
             </div>
 
             <div className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden">
-              <div className="bg-blue-800 h-2 no-print"></div>
+              <div className="bg-blue-800 h-2"></div>
               <div className="p-8 md:p-12">
                 <form onSubmit={handleSubmit} className="space-y-8">
                   <div className="space-y-6">
@@ -435,7 +435,7 @@ export default function App() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="bg-slate-50 text-[10px] uppercase tracking-widest font-black">
+                    <tr className="bg-slate-50 text-[10px] uppercase tracking-widest font-black text-slate-500">
                       <th className="p-6">Tarikh</th>
                       <th className="p-6">Program</th>
                       <th className="p-6">Tempat</th>
@@ -480,63 +480,132 @@ export default function App() {
         )}
       </div>
 
-      {/* Print Modal */}
+      {/* Print Modal / View */}
       {isPrintModalOpen && selectedReport && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 no-print">
-          <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl p-0 border border-slate-200">
-            <div className="bg-white p-12 leading-relaxed text-slate-900" id="printable-area">
-              <div className="flex justify-between items-center border-b-4 border-slate-900 pb-6 mb-8 uppercase">
-                <img src="https://i.postimg.cc/SNmZtXqv/photo-2026-01-21-21-49-29.jpg" className="w-24 h-24 object-contain" />
-                <div className="text-right">
-                  <h1 className="text-2xl font-black">SMA AL-MAHADUL ISLAMI</h1>
-                  <p className="text-xs font-bold text-slate-500">Laporan Aktiviti Kokurikulum Digital</p>
+          <div className="bg-white w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-3xl p-0 border border-slate-200">
+            {/* Header Modal UI */}
+            <div className="p-4 border-b flex justify-between items-center bg-slate-50 rounded-t-3xl sticky top-0 z-10">
+               <h3 className="font-bold text-slate-700 uppercase text-xs tracking-widest flex items-center">
+                 <Printer className="w-4 h-4 mr-2" /> Previu Laporan
+               </h3>
+               <div className="flex space-x-3">
+                 <button 
+                   onClick={() => setIsPrintModalOpen(false)} 
+                   className="px-4 py-2 bg-white border border-slate-200 text-slate-500 rounded-lg text-xs font-bold uppercase hover:bg-slate-100 transition"
+                 >
+                   Batal
+                 </button>
+                 <button 
+                   onClick={handlePrint} 
+                   className="px-6 py-2 bg-blue-800 text-white rounded-lg text-xs font-black uppercase tracking-wide shadow-md hover:bg-blue-900 transition flex items-center"
+                 >
+                   <Printer className="w-4 h-4 mr-2" /> Cetak Laporan
+                 </button>
+               </div>
+            </div>
+
+            {/* Konten Laporan Rasmi yang Akan Dicetak */}
+            <div className="bg-white p-8 md:p-16 text-slate-900 printable-card" id="printable-area">
+              {/* Header Dokumen Rasmi */}
+              <div className="flex items-center border-b-2 border-slate-900 pb-6 mb-8 gap-6">
+                <img src={SCHOOL_LOGO} className="w-24 h-24 object-contain" alt="School Logo" />
+                <div className="flex-1">
+                  <h1 className="text-2xl font-black text-slate-900 uppercase leading-none">SMA AL-MAHADUL ISLAMI</h1>
+                  <p className="text-sm font-bold text-slate-600 mt-1 uppercase tracking-tight">TASEK JUNJUNG, 14120 SIMPANG AMPAT, PULAU PINANG</p>
+                  <p className="text-xs font-medium text-slate-500 uppercase mt-0.5">Telefon: 04-588 7226 | Kod Sekolah: PFT4001</p>
+                  <div className="h-1 bg-slate-900 mt-4"></div>
+                  <div className="h-0.5 bg-slate-900 mt-0.5"></div>
                 </div>
               </div>
-              <div className="bg-slate-100 p-8 rounded-3xl mb-8 uppercase">
-                <p className="text-[10px] font-black text-blue-800 mb-1 tracking-widest">UNIT / PERSATUAN / PROGRAM</p>
-                <h2 className="text-3xl font-black text-slate-900">{selectedReport.nama}</h2>
-                <div className="grid grid-cols-2 mt-4 text-sm font-bold gap-y-2">
-                  <div className="flex items-center"><span className="text-slate-400 w-24">TARIKH:</span> {selectedReport.tarikh} ({selectedReport.hari})</div>
-                  <div className="flex items-center"><span className="text-slate-400 w-24">TEMPAT:</span> {selectedReport.tempat}</div>
-                  <div className="flex items-center"><span className="text-slate-400 w-24">MASA:</span> {selectedReport.masa}</div>
-                </div>
+
+              <div className="text-center mb-8">
+                <h2 className="text-xl font-black uppercase underline decoration-2 underline-offset-4">LAPORAN AKTIVITI KOKURIKULUM DIGITAL</h2>
               </div>
-              <div className="space-y-6 uppercase">
-                <div>
-                  <h3 className="font-black text-blue-800 text-[10px] mb-2 tracking-widest">OBJEKTIF PROGRAM</h3>
-                  <div className="p-5 border-2 border-slate-100 rounded-2xl text-sm leading-relaxed">{selectedReport.objektif || '-'}</div>
+
+              {/* Ringkasan Maklumat */}
+              <div className="grid grid-cols-1 md:grid-cols-2 border border-slate-300 rounded-xl mb-8 overflow-hidden uppercase text-sm">
+                <div className="p-4 border-b md:border-b-0 md:border-r border-slate-300">
+                  <div className="flex items-start mb-2">
+                    <span className="font-black w-24 flex-shrink-0">PROGRAM:</span>
+                    <span className="font-bold text-blue-900">{selectedReport.nama}</span>
+                  </div>
+                  <div className="flex items-center mb-2">
+                    <span className="font-black w-24">TARIKH:</span>
+                    <span>{selectedReport.tarikh}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="font-black w-24">HARI:</span>
+                    <span>{selectedReport.hari}</span>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-black text-blue-800 text-[10px] mb-2 tracking-widest">LAPORAN PENUH</h3>
-                  <div className="p-5 border-2 border-slate-100 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed min-h-[150px]">{selectedReport.aktiviti}</div>
-                </div>
-                <div>
-                  <h3 className="font-black text-blue-800 text-[10px] mb-2 tracking-widest">GAMBAR AKTIVITI</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    {(selectedReport.imej || []).map((img, i) => (
-                      <img key={i} src={img} className="w-full h-64 object-cover rounded-2xl border-2 border-slate-50" />
-                    ))}
+                <div className="p-4">
+                  <div className="flex items-start mb-2">
+                    <span className="font-black w-24 flex-shrink-0">TEMPAT:</span>
+                    <span>{selectedReport.tempat}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="font-black w-24">MASA:</span>
+                    <span>{selectedReport.masa}</span>
                   </div>
                 </div>
               </div>
-            </div>
-            <div className="bg-slate-50 p-6 flex justify-end space-x-4 border-t sticky bottom-0">
-              <button 
-                onClick={() => setIsPrintModalOpen(false)} 
-                className="px-6 py-2.5 font-bold uppercase text-xs text-slate-500"
-              >
-                Tutup
-              </button>
-              <button 
-                onClick={() => window.print()} 
-                className="px-8 py-3 bg-blue-800 text-white rounded-xl font-black uppercase text-sm tracking-wide shadow-lg"
-              >
-                Cetak Laporan
-              </button>
+
+              {/* Kandungan Laporan */}
+              <div className="space-y-8 uppercase">
+                <section>
+                  <h3 className="font-black bg-slate-100 p-2 text-sm border-l-4 border-blue-800 mb-3 tracking-wide">1.0 OBJEKTIF PROGRAM</h3>
+                  <div className="pl-6 text-sm leading-relaxed text-justify">
+                    {selectedReport.objektif || 'TIADA OBJEKTIF DINYATAKAN'}
+                  </div>
+                </section>
+
+                <section>
+                  <h3 className="font-black bg-slate-100 p-2 text-sm border-l-4 border-blue-800 mb-3 tracking-wide">2.0 LAPORAN AKTIVITI</h3>
+                  <div className="pl-6 text-sm leading-relaxed text-justify whitespace-pre-wrap">
+                    {selectedReport.aktiviti}
+                  </div>
+                </section>
+
+                <section className="break-inside-avoid">
+                  <h3 className="font-black bg-slate-100 p-2 text-sm border-l-4 border-blue-800 mb-3 tracking-wide">3.0 DOKUMENTASI GAMBAR</h3>
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    {(selectedReport.imej || []).map((img, i) => (
+                      <div key={i} className="flex flex-col items-center">
+                        <img src={img} className="w-full h-64 object-cover rounded-lg border border-slate-300" alt={`Dokumentasi ${i+1}`} />
+                        <span className="text-[10px] mt-2 font-bold text-slate-500 italic uppercase">Gambar Aktiviti {i+1}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              </div>
+
+              {/* Bahagian Pengesahan */}
+              <div className="mt-20 grid grid-cols-2 gap-20 break-inside-avoid">
+                <div className="text-center">
+                  <div className="h-px bg-slate-400 w-full mb-2"></div>
+                  <p className="text-xs font-black uppercase">Disediakan Oleh,</p>
+                  <p className="text-[10px] mt-1 text-slate-500 uppercase">(Guru Penasihat / Penyelaras)</p>
+                </div>
+                <div className="text-center">
+                  <div className="h-px bg-slate-400 w-full mb-2"></div>
+                  <p className="text-xs font-black uppercase">Disahkan Oleh,</p>
+                  <p className="text-[10px] mt-1 text-slate-500 uppercase">(Pengetua / PK Kokurikulum)</p>
+                </div>
+              </div>
+
+              <div className="mt-16 pt-4 border-t border-slate-200 text-center">
+                <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Laporan ini dijana secara digital melalui Sistem Laporan Kokurikulum Digital SMAMI pada {new Date().toLocaleDateString('ms-MY')}</p>
+              </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Footer / Copyright */}
+      <footer className="mt-10 py-6 text-center no-print">
+        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">© 2024 SMA AL-MAHADUL ISLAMI - SISTEM LAPORAN DIGITAL</p>
+      </footer>
     </div>
   );
 }

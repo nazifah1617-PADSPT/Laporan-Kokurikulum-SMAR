@@ -12,7 +12,24 @@
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
         .glass-nav { background: rgba(29, 78, 216, 0.95); backdrop-filter: blur(10px); }
-        @media print { .no-print { display: none !important; } .print-only { display: block !important; } }
+        
+        @media print { 
+            .no-print { display: none !important; } 
+            .print-only { display: block !important; }
+            body { background: white !important; }
+            .printable-card { 
+                box-shadow: none !important; 
+                border: none !important; 
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            @page {
+                margin: 2cm;
+            }
+        }
+
         .loader {
             border: 3px solid #f3f3f3;
             border-radius: 50%;

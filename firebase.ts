@@ -1,8 +1,12 @@
-
-// Correct import paths for Firebase v9+ Modular SDK
+// Firebase v9+ Modular SDK configuration
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, doc, onSnapshot, addDoc, deleteDoc } from "firebase/firestore";
-import { getAuth, onAuthStateChanged, signInAnonymously } from "firebase/auth";
+import { getFirestore, collection, doc } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+
+// Re-exporting Firebase functions to centralize module resolution and resolve "no exported member" errors
+// Using direct export from syntax to ensure named exports are correctly identified by the compiler
+export { onSnapshot, addDoc, deleteDoc } from "firebase/firestore";
+export { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 
 // Firebase configuration for the SMAMI Digital Koko system
 const firebaseConfig = {
@@ -28,12 +32,3 @@ export const getReportsCollection = () =>
 // Document helper for a specific report instance
 export const getReportDoc = (id: string) => 
   doc(db, 'artifacts', appId, 'public', 'data', 'reports', id);
-
-// Re-exporting Firebase functions to centralize module resolution and resolve "no exported member" errors
-export { 
-  onSnapshot, 
-  addDoc, 
-  deleteDoc, 
-  onAuthStateChanged, 
-  signInAnonymously 
-};

@@ -570,7 +570,7 @@ export default function App() {
                 <div className="flex-1">
                   <h1 className="text-2xl font-black text-slate-900 uppercase leading-none">SMA AL-MAHADUL ISLAMI</h1>
                   <p className="text-sm font-bold text-slate-600 mt-1 uppercase tracking-tight">TASEK JUNJUNG, 14120 SIMPANG AMPAT, PULAU PINANG</p>
-                  <p className="text-xs font-medium text-slate-500 uppercase mt-0.5">Telefon: 04-588 7226 | Kod Sekolah: PFT4001</p>
+                  <p className="text-xs font-medium text-slate-500 uppercase mt-0.5">Telefon: 04-4872322 | Kod Sekolah: PFT0005</p>
                   <div className="h-1 bg-slate-900 mt-4"></div>
                   <div className="h-0.5 bg-slate-900 mt-0.5"></div>
                 </div>

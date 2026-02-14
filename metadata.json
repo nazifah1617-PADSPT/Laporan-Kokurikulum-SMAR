@@ -1,0 +1,7 @@
+{
+  "name": "Sistem Laporan Kokurikulum Digital - SMA Al-Mahadul Islami",
+  "description": "Sistem pengurusan laporan aktiviti kokurikulum digital untuk kegunaan SMA Al-Mahadul Islami, Tasek Junjung.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

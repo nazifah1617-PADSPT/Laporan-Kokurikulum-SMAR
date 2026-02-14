@@ -2,15 +2,21 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Lock, ShieldCheck, Info, AlignLeft, Image as ImageIcon, 
-  CloudUpload, ArrowLeft, Eye, Trash2, Printer, MapPin, Calendar, Clock, User
+  CloudUpload, ArrowLeft, Eye, Trash2, Printer, Sparkles
 } from 'lucide-react';
+// Importing Gemini API for AI features
+import { GoogleGenAI } from "@google/genai";
+// Centralized Firebase imports from our local config file
 import { 
-  onAuthStateChanged, signInAnonymously 
-} from "firebase/auth";
-import { 
-  onSnapshot, addDoc, deleteDoc 
-} from "firebase/firestore";
-import { auth, getReportsCollection, getReportDoc } from './firebase';
+  auth, 
+  getReportsCollection, 
+  getReportDoc, 
+  onAuthStateChanged, 
+  signInAnonymously,
+  onSnapshot, 
+  addDoc, 
+  deleteDoc 
+} from './firebase';
 import { Report, ViewState, ConnectionStatus } from './types';
 
 export default function App() {
@@ -21,6 +27,10 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+
+  // AI Insights State
+  const [aiSummary, setAiSummary] = useState('');
+  const [isSummarizing, setIsSummarizing] = useState(false);
 
   // Form states
   const [namaProgram, setNamaProgram] = useState('');
@@ -40,6 +50,7 @@ export default function App() {
 
   const SCHOOL_LOGO = "https://i.postimg.cc/SNmZtXqv/photo-2026-01-21-21-49-29.jpg";
 
+  // Effect to handle auth lifecycle and real-time report updates
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -72,6 +83,30 @@ export default function App() {
       setAdminPwInput('');
     } else {
       alert("ID atau Kata Laluan Salah!");
+    }
+  };
+
+  // Logic to generate summary of activities using Gemini AI
+  const handleAiSummary = async () => {
+    if (reports.length === 0) return;
+    setIsSummarizing(true);
+    setAiSummary('');
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const activityTitles = reports.map(r => r.nama).join(', ');
+      const prompt = `Berikut adalah senarai tajuk aktiviti kokurikulum sekolah: ${activityTitles}. 
+      Tolong berikan satu perenggan rumusan profesional dalam Bahasa Melayu yang menghuraikan kepelbagaian aktiviti ini dan bagaimana ia membantu pembentukan sahsiah pelajar.`;
+      
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: prompt,
+      });
+      setAiSummary(response.text || "Tiada rumusan dijana.");
+    } catch (err) {
+      console.error(err);
+      setAiSummary("Maaf, sistem AI tidak dapat menjana rumusan buat masa ini.");
+    } finally {
+      setIsSummarizing(false);
     }
   };
 
@@ -173,7 +208,7 @@ export default function App() {
 
   return (
     <div className="bg-slate-50 min-h-screen text-slate-900 pb-10">
-      {/* Navigasi Utama */}
+      {/* Navigation Bar */}
       <nav className="glass-nav text-white shadow-xl sticky top-0 z-40 no-print">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-4 cursor-pointer" onClick={() => window.location.reload()}>
@@ -213,9 +248,9 @@ export default function App() {
         </div>
       </nav>
 
-      {/* MODAL LOG MASUK */}
+      {/* Admin Login Modal */}
       {isLoginModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center z-[100] p-4">
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center z-[100] p-4 no-print">
           <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden border border-slate-200 modal-enter">
             <div className="p-8">
               <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
@@ -263,7 +298,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Kandungan Utama */}
+      {/* Main Content Areas */}
       <div className="container mx-auto px-4 py-10 no-print">
         {view === 'dashboard' && (
           <div className="max-w-4xl mx-auto">
@@ -425,13 +460,36 @@ export default function App() {
                   <h2 className="text-2xl font-black text-slate-900 uppercase">ARKIB LAPORAN DIGITAL</h2>
                   <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Senarai semua aktiviti yang telah direkodkan</p>
                 </div>
-                <button 
-                  onClick={() => setView('dashboard')} 
-                  className="px-5 py-2.5 bg-white border rounded-lg font-bold uppercase text-xs hover:bg-slate-100 transition flex items-center"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" /> Kembali
-                </button>
+                <div className="flex space-x-2">
+                  <button 
+                    onClick={handleAiSummary}
+                    disabled={isSummarizing || reports.length === 0}
+                    className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-bold uppercase text-xs hover:bg-indigo-700 transition flex items-center shadow-lg disabled:opacity-50"
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" /> {isSummarizing ? 'Menjana...' : 'Rumusan AI'}
+                  </button>
+                  <button 
+                    onClick={() => setView('dashboard')} 
+                    className="px-5 py-2.5 bg-white border rounded-lg font-bold uppercase text-xs hover:bg-slate-100 transition flex items-center"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" /> Kembali
+                  </button>
+                </div>
               </div>
+
+              {/* AI Insight Bar */}
+              {aiSummary && (
+                <div className="p-6 bg-indigo-50 border-b border-indigo-100 animate-in fade-in slide-in-from-top-4 duration-500">
+                  <div className="flex items-start space-x-3">
+                    <Sparkles className="w-5 h-5 text-indigo-600 mt-1 flex-shrink-0" />
+                    <div>
+                      <h4 className="text-[10px] font-black text-indigo-900 uppercase tracking-widest mb-1">Rumusan Eksekutif AI</h4>
+                      <p className="text-sm text-indigo-800 leading-relaxed italic">"{aiSummary}"</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
@@ -480,12 +538,12 @@ export default function App() {
         )}
       </div>
 
-      {/* Print Modal / View */}
+      {/* Official Report Print Template */}
       {isPrintModalOpen && selectedReport && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 no-print">
-          <div className="bg-white w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-3xl p-0 border border-slate-200">
-            {/* Header Modal UI */}
-            <div className="p-4 border-b flex justify-between items-center bg-slate-50 rounded-t-3xl sticky top-0 z-10">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-0 md:p-4 z-50 print-wrapper">
+          <div className="bg-white w-full max-w-5xl md:max-h-[90vh] md:overflow-y-auto md:rounded-3xl p-0 border border-slate-200 shadow-2xl">
+            {/* Modal Header for Screen View */}
+            <div className="p-4 border-b flex justify-between items-center bg-slate-50 md:rounded-t-3xl sticky top-0 z-20 no-print">
                <h3 className="font-bold text-slate-700 uppercase text-xs tracking-widest flex items-center">
                  <Printer className="w-4 h-4 mr-2" /> Previu Laporan
                </h3>
@@ -505,9 +563,8 @@ export default function App() {
                </div>
             </div>
 
-            {/* Konten Laporan Rasmi yang Akan Dicetak */}
+            {/* Print Content Area */}
             <div className="bg-white p-8 md:p-16 text-slate-900 printable-card" id="printable-area">
-              {/* Header Dokumen Rasmi */}
               <div className="flex items-center border-b-2 border-slate-900 pb-6 mb-8 gap-6">
                 <img src={SCHOOL_LOGO} className="w-24 h-24 object-contain" alt="School Logo" />
                 <div className="flex-1">
@@ -520,17 +577,16 @@ export default function App() {
               </div>
 
               <div className="text-center mb-8">
-                <h2 className="text-xl font-black uppercase underline decoration-2 underline-offset-4">LAPORAN AKTIVITI KOKURIKULUM DIGITAL</h2>
+                <h2 className="text-xl font-black uppercase underline decoration-2 underline-offset-4 tracking-wider">LAPORAN AKTIVITI KOKURIKULUM</h2>
               </div>
 
-              {/* Ringkasan Maklumat */}
-              <div className="grid grid-cols-1 md:grid-cols-2 border border-slate-300 rounded-xl mb-8 overflow-hidden uppercase text-sm">
-                <div className="p-4 border-b md:border-b-0 md:border-r border-slate-300">
-                  <div className="flex items-start mb-2">
-                    <span className="font-black w-24 flex-shrink-0">PROGRAM:</span>
+              <div className="grid grid-cols-2 border border-slate-400 mb-8 uppercase text-xs">
+                <div className="p-4 border-r border-slate-400 space-y-2">
+                  <div className="flex items-start">
+                    <span className="font-black w-24 flex-shrink-0">UNIT/KELAB:</span>
                     <span className="font-bold text-blue-900">{selectedReport.nama}</span>
                   </div>
-                  <div className="flex items-center mb-2">
+                  <div className="flex items-center">
                     <span className="font-black w-24">TARIKH:</span>
                     <span>{selectedReport.tarikh}</span>
                   </div>
@@ -539,8 +595,8 @@ export default function App() {
                     <span>{selectedReport.hari}</span>
                   </div>
                 </div>
-                <div className="p-4">
-                  <div className="flex items-start mb-2">
+                <div className="p-4 space-y-2">
+                  <div className="flex items-start">
                     <span className="font-black w-24 flex-shrink-0">TEMPAT:</span>
                     <span>{selectedReport.tempat}</span>
                   </div>
@@ -551,58 +607,58 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Kandungan Laporan */}
               <div className="space-y-8 uppercase">
                 <section>
-                  <h3 className="font-black bg-slate-100 p-2 text-sm border-l-4 border-blue-800 mb-3 tracking-wide">1.0 OBJEKTIF PROGRAM</h3>
+                  <h3 className="font-black bg-slate-100 p-2 text-sm border-l-4 border-slate-900 mb-3 tracking-wide">1.0 OBJEKTIF AKTIVITI</h3>
                   <div className="pl-6 text-sm leading-relaxed text-justify">
                     {selectedReport.objektif || 'TIADA OBJEKTIF DINYATAKAN'}
                   </div>
                 </section>
 
                 <section>
-                  <h3 className="font-black bg-slate-100 p-2 text-sm border-l-4 border-blue-800 mb-3 tracking-wide">2.0 LAPORAN AKTIVITI</h3>
+                  <h3 className="font-black bg-slate-100 p-2 text-sm border-l-4 border-slate-900 mb-3 tracking-wide">2.0 RINGKASAN AKTIVITI</h3>
                   <div className="pl-6 text-sm leading-relaxed text-justify whitespace-pre-wrap">
                     {selectedReport.aktiviti}
                   </div>
                 </section>
 
                 <section className="break-inside-avoid">
-                  <h3 className="font-black bg-slate-100 p-2 text-sm border-l-4 border-blue-800 mb-3 tracking-wide">3.0 DOKUMENTASI GAMBAR</h3>
-                  <div className="grid grid-cols-2 gap-4 mt-4">
+                  <h3 className="font-black bg-slate-100 p-2 text-sm border-l-4 border-slate-900 mb-3 tracking-wide">3.0 DOKUMENTASI GAMBAR</h3>
+                  <div className="grid grid-cols-2 gap-6 mt-6">
                     {(selectedReport.imej || []).map((img, i) => (
                       <div key={i} className="flex flex-col items-center">
-                        <img src={img} className="w-full h-64 object-cover rounded-lg border border-slate-300" alt={`Dokumentasi ${i+1}`} />
-                        <span className="text-[10px] mt-2 font-bold text-slate-500 italic uppercase">Gambar Aktiviti {i+1}</span>
+                        <img src={img} className="w-full h-72 object-cover rounded shadow-sm border border-slate-300" alt={`Dokumentasi ${i+1}`} />
+                        <span className="text-[10px] mt-2 font-bold text-slate-500 italic">Gambar Aktiviti {i+1}</span>
                       </div>
                     ))}
                   </div>
                 </section>
               </div>
 
-              {/* Bahagian Pengesahan */}
-              <div className="mt-20 grid grid-cols-2 gap-20 break-inside-avoid">
+              <div className="mt-20 grid grid-cols-2 gap-32 break-inside-avoid">
                 <div className="text-center">
-                  <div className="h-px bg-slate-400 w-full mb-2"></div>
+                  <div className="h-20"></div>
+                  <div className="h-px bg-slate-900 w-full mb-2"></div>
                   <p className="text-xs font-black uppercase">Disediakan Oleh,</p>
                   <p className="text-[10px] mt-1 text-slate-500 uppercase">(Guru Penasihat / Penyelaras)</p>
                 </div>
                 <div className="text-center">
-                  <div className="h-px bg-slate-400 w-full mb-2"></div>
+                  <div className="h-20"></div>
+                  <div className="h-px bg-slate-900 w-full mb-2"></div>
                   <p className="text-xs font-black uppercase">Disahkan Oleh,</p>
                   <p className="text-[10px] mt-1 text-slate-500 uppercase">(Pengetua / PK Kokurikulum)</p>
                 </div>
               </div>
 
-              <div className="mt-16 pt-4 border-t border-slate-200 text-center">
-                <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Laporan ini dijana secara digital melalui Sistem Laporan Kokurikulum Digital SMAMI pada {new Date().toLocaleDateString('ms-MY')}</p>
+              <div className="mt-16 pt-4 border-t border-slate-200 text-center no-print-visible">
+                <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Laporan ini dijana melalui Sistem Laporan Kokurikulum Digital SMAMI pada {new Date().toLocaleDateString('ms-MY')} jam {new Date().toLocaleTimeString('ms-MY')}</p>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Footer / Copyright */}
+      {/* Page Footer */}
       <footer className="mt-10 py-6 text-center no-print">
         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">© 2024 SMA AL-MAHADUL ISLAMI - SISTEM LAPORAN DIGITAL</p>
       </footer>
